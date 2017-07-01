@@ -86,11 +86,16 @@ def get_userid_to_realname(slack):
     print("found {0} users ".format(len(users)))
     return userIdNameMap
 
-def dict_str(d:dict) -> str:
-    s = "{\n"
-    for k in d.keys():
-        s += "\t'%s':'%s',\n" % (k, d[k])
-    s += "}"
+def str_attachments(attachments:list) -> str:
+    def str_dict(d: dict) -> str:
+        s = "{\n"
+        for k in d.keys():
+            s += "\t'%s':'%s',\n" % (k, d[k])
+        s += "}"
+        return s
+    s = ""
+    for a in attachments:
+        s += str_dict(a) + "\n"
     return s
 
 def resolve_message(slack: Slacker, userid_to_name: dict,
@@ -100,7 +105,7 @@ def resolve_message(slack: Slacker, userid_to_name: dict,
     time = resolve_time(message['ts'])
     core_refmt = "[%s | %s on %s] %s" % (original_channel, name, time, content)
     if 'attachments' in message:
-        attachments_json = dict_str(message['attachments'])
+        attachments_json = str_attachments(message['attachments'])
         core_refmt = "%s\nAttachments:\n%s" % (core_refmt, attachments_json)
     return core_refmt
 
