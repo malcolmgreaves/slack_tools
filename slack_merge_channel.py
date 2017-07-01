@@ -64,6 +64,9 @@ import os
 
 from slacker import Slacker
 
+from slack_history import *
+
+
 def get_private_channel(slack, channel_name):
     groups = slack.groups.list().body['groups']
 
@@ -85,27 +88,6 @@ def write_channel_histories_to_new(slack, histories, new_channel_name):
             slack.chat.post_message(new_channel_name, post(msg))
     print("Success!")
 
-# fetch all users for the channel and return a map userId -> userName
-
-
-def getUserMap(slack):
-    # get all users in the slack organization
-    users = slack.users.list().body['members']
-    userIdNameMap = {}
-    for user in users:
-        userIdNameMap[user['id']] = user['name']
-    print("found {0} users ".format(len(users)))
-    return userIdNameMap
-
-# get basic info about the slack channel to ensure the authentication token works
-
-
-def doTestAuth(slack):
-    testAuth = slack.auth.test().body
-    teamName = testAuth['team']
-    currentUser = testAuth['user']
-    print("Successfully authenticated for team {0} and user {1} ".format(teamName, currentUser))
-    return testAuth
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='download slack history')
@@ -134,8 +116,8 @@ if __name__ == "__main__":
         print(c)
     print("New channel for merge: %s" % new_channel)
 
-    histories = filter(lambda x: x is not None,
-                       [get_private_channel(slack, c) for c in channels_to_merge])
+    histories = list(filter(lambda x: x is not None,
+                       [get_private_channel(slack, c) for c in channels_to_merge]))
 
     write_channel_histories_to_new(slack, histories, new_channel)
 
