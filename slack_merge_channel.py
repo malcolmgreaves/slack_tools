@@ -131,8 +131,8 @@ def write_channel_histories_to_new(slack, userid_to_name, histories, new_channel
         post = lambda m: resolve_message(slack, userid_to_name, name, m)
         for i,msg in enumerate(messages):
             slack.chat.post_message(new_channel_name, post(msg))
-            if i % 10 == 0:
-                time.sleep(1)
+            time.sleep(1)
+            print("...sent [%d/%d]" % (i+1, len(messages)))
     print("Success!")
 
 
