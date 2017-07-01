@@ -61,7 +61,9 @@ channelId is the id of the channel/group/im you want to download history for.
 import json
 import argparse
 import os
+import time
 from datetime import datetime, timedelta
+
 
 import pytz
 from slacker import Slacker
@@ -103,7 +105,7 @@ def resolve_message(slack: Slacker, userid_to_name: dict,
     name = userid_to_name[message['user']]
     content = message['text']
     time = resolve_time(message['ts'])
-    core_refmt = "[%s | %s on %s] %s" % (original_channel, name, time, content)
+    core_refmt = "[%s | %s on %s]\n%s" % (original_channel, name, time, content)
     if 'attachments' in message:
         attachments_json = str_attachments(message['attachments'])
         core_refmt = "%s\nAttachments:\n%s" % (core_refmt, attachments_json)
@@ -127,8 +129,10 @@ def write_channel_histories_to_new(slack, userid_to_name, histories, new_channel
     for name, id, messages in histories:
         print("Working on channel %s (id %s) with %d messages" % (name, id, len(messages)))
         post = lambda m: resolve_message(slack, userid_to_name, name, m)
-        for msg in messages:
+        for i,msg in enumerate(messages):
             slack.chat.post_message(new_channel_name, post(msg))
+            if i % 10 == 0:
+                time.sleep(1)
     print("Success!")
 
 
