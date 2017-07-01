@@ -61,10 +61,48 @@ channelId is the id of the channel/group/im you want to download history for.
 import json
 import argparse
 import os
+from datetime import datetime, timedelta
 
+import pytz
 from slacker import Slacker
 
 from slack_history import *
+
+def resolve_time(microseconds:str) -> str:
+    pst = pytz.timezone('US/Pacific')
+    epoch = datetime(1970, 1, 1, tzinfo=pst)
+    seven_hours_micro = int(2.52e10)
+    cookie_microseconds_since_epoch = int(microseconds.replace('.','')) - seven_hours_micro
+    cookie_datetime = epoch + timedelta(microseconds=cookie_microseconds_since_epoch)
+    return str(cookie_datetime)
+
+
+def get_userid_to_realname(slack):
+    # get all users in the slack organization
+    users = slack.users.list().body['members']
+    userIdNameMap = {}
+    for user in users:
+        userIdNameMap[user['id']] = user['profile']['real_name']
+    print("found {0} users ".format(len(users)))
+    return userIdNameMap
+
+def dict_str(d:dict) -> str:
+    s = "{\n"
+    for k in d.keys():
+        s += "\t'%s':'%s',\n" % (k, d[k])
+    s += "}"
+    return s
+
+def resolve_message(slack: Slacker, userid_to_name: dict,
+                    original_channel:str, message: dict) -> str:
+    name = userid_to_name[message['user']]
+    content = message['text']
+    time = resolve_time(message['ts'])
+    core_refmt = "[%s | %s on %s] %s" % (original_channel, name, time, content)
+    if 'attachments' in message:
+        attachments_json = dict_str(message['attachments'])
+        core_refmt = "%s\nAttachments:\n%s" % (core_refmt, attachments_json)
+    return core_refmt
 
 
 def get_private_channel(slack, channel_name):
@@ -79,11 +117,11 @@ def get_private_channel(slack, channel_name):
         messages = getHistory(slack.groups, group['id'])
         return group['name'], group['id'], messages
 
-def write_channel_histories_to_new(slack, histories, new_channel_name):
+def write_channel_histories_to_new(slack, userid_to_name, histories, new_channel_name):
     print("Writing %d channel histories to new channel %s" % (len(histories), new_channel_name))
     for name, id, messages in histories:
         print("Working on channel %s (id %s) with %d messages" % (name, id, len(messages)))
-        post = lambda m: "[%s]: %s" % (name, m)
+        post = lambda m: resolve_message(slack, userid_to_name, name, m)
         for msg in messages:
             slack.chat.post_message(new_channel_name, post(msg))
     print("Success!")
@@ -107,7 +145,7 @@ if __name__ == "__main__":
 
     slack = Slacker(args.token)
     testAuth = doTestAuth(slack)
-    userIdNameMap = getUserMap(slack)
+    user_map = get_userid_to_realname(slack)
 
     new_channel = args.new_channel
     channels_to_merge = args.previous_channels.split(",")
@@ -119,5 +157,5 @@ if __name__ == "__main__":
     histories = list(filter(lambda x: x is not None,
                        [get_private_channel(slack, c) for c in channels_to_merge]))
 
-    write_channel_histories_to_new(slack, histories, new_channel)
+    write_channel_histories_to_new(slack, user_map, histories, new_channel)
 

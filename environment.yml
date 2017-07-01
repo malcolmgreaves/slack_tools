@@ -6,3 +6,4 @@ dependencies:
   - pip:
     - mypy
     - slacker
+    - pytz
