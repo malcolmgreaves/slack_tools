@@ -130,9 +130,13 @@ def write_channel_histories_to_new(slack, userid_to_name, histories, new_channel
         print("Working on channel %s (id %s) with %d messages" % (name, id, len(messages)))
         post = lambda m: resolve_message(slack, userid_to_name, name, m)
         for i,msg in enumerate(messages):
-            slack.chat.post_message(new_channel_name, post(msg))
-            time.sleep(1)
-            print("...sent [%d/%d]" % (i+1, len(messages)))
+            try:
+                slack.chat.post_message(new_channel_name, post(msg))
+                print("...sent [%d/%d]" % (i + 1, len(messages)))
+                time.sleep(1)
+            except Exception as e:
+                print("error, could not send message %d due to %s, skipping" % (i+1, e))
+
     print("Success!")
 
 
