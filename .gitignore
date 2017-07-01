@@ -4,6 +4,9 @@ direct_messages/
 metadata.json
 private_channels/
 
+# misc
+_exported_to_slack/
+
 # Python
 *.pyc
 
