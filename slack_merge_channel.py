@@ -123,7 +123,7 @@ def get_channel(slack, channel_name):
 def get_public_channel(slack, channel_name):
     channels = slack.channels.list().body['channels']
     for channel in channels:
-        if channel == channel_name:
+        if channel['name'] == channel_name:
             print("getting history for public channel {0} with id {1}".format(
                 channel['name'], channel['id']))
             messages = getHistory(slack.channels, channel['id'])
