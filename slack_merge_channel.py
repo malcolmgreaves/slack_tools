@@ -143,10 +143,7 @@ def get_channel(slack, channel_name):
 
 
 def sort_messages_last_to_first(messages):
-    def sort_f(m):
-        resolve_time(message['ts'])
-    return sorted(messages, key=sort_f)
-
+    return sorted(messages, key=lambda m: int(m['ts'].replace(".","")))
 
 
 def write_channel_histories_to_new(slack, userid_to_name, histories, new_channel_name):
