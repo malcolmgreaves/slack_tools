@@ -13,3 +13,6 @@ _exported_to_slack/
 # Editors
 *.swp
 .idea/
+
+# OSX
+.DS_Store
