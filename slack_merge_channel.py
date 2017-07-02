@@ -137,7 +137,7 @@ def get_private_channel(slack, channel_name):
             print("getting history for private channel {0} with id {1}".format(
                 group['name'], group['id']))
             messages = getHistory(slack.groups, group['id'])
-        return group['name'], group['id'], messages
+            return group['name'], group['id'], messages
 
     return None
 
@@ -179,10 +179,6 @@ if __name__ == "__main__":
 
     new_channel = args.new_channel
     channels_to_merge = args.previous_channels.split(",")
-
-    c_set = set(channels_to_merge )
-    for c in slack.channels.list().body['channels']:
-
 
     print("Merging from %d channels" % len(channels_to_merge))
     for c in channels_to_merge:
