@@ -112,17 +112,34 @@ def resolve_message(slack: Slacker, userid_to_name: dict,
     return core_refmt
 
 
+def get_channel(slack, channel_name):
+    result = get_private_channel(slack, channel_name)
+    if result is None:
+        result = get_public_channel(slack, channel_name)
+        if result is None:
+            print("ERROR: Invalid channel: %s" % channel_name)
+    return result
+
+def get_public_channel(slack, channel_name):
+    channels = slack.channels.list().body['channels']
+    for channel in channels:
+        if channel == channel_name:
+            print("getting history for public channel {0} with id {1}".format(
+                channel['name'], channel['id']))
+            messages = getHistory(slack.channels, channel['id'])
+            return channel['name'], channel['id'], messages
+    return None
+
 def get_private_channel(slack, channel_name):
     groups = slack.groups.list().body['groups']
-
     for group in groups:
-        if group['name'] != channel_name:
-            continue
-
-        print("getting history for private channel {0} with id {1}".format(
-            group['name'], group['id']))
-        messages = getHistory(slack.groups, group['id'])
+        if group['name'] == channel_name:
+            print("getting history for private channel {0} with id {1}".format(
+                group['name'], group['id']))
+            messages = getHistory(slack.groups, group['id'])
         return group['name'], group['id'], messages
+
+    return None
 
 def write_channel_histories_to_new(slack, userid_to_name, histories, new_channel_name):
     print("Writing %d channel histories to new channel %s" % (len(histories), new_channel_name))
@@ -162,13 +179,18 @@ if __name__ == "__main__":
 
     new_channel = args.new_channel
     channels_to_merge = args.previous_channels.split(",")
+
+    c_set = set(channels_to_merge )
+    for c in slack.channels.list().body['channels']:
+
+
     print("Merging from %d channels" % len(channels_to_merge))
     for c in channels_to_merge:
         print(c)
     print("New channel for merge: %s" % new_channel)
 
     histories = list(filter(lambda x: x is not None,
-                       [get_private_channel(slack, c) for c in channels_to_merge]))
+                            [get_channel(slack, c) for c in channels_to_merge]))
 
     write_channel_histories_to_new(slack, user_map, histories, new_channel)
 
