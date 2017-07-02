@@ -113,6 +113,27 @@ def resolve_message(slack: Slacker, userid_to_name: dict,
 
 
 def get_channel(slack, channel_name):
+    def get_public_channel(slack, channel_name):
+        channels = slack.channels.list().body['channels']
+        for channel in channels:
+            if channel['name'] == channel_name:
+                print("getting history for public channel {0} with id {1}".format(
+                    channel['name'], channel['id']))
+                messages = getHistory(slack.channels, channel['id'])
+                return channel['name'], channel['id'], messages
+        return None
+
+    def get_private_channel(slack, channel_name):
+        groups = slack.groups.list().body['groups']
+        for group in groups:
+            if group['name'] == channel_name:
+                print("getting history for private channel {0} with id {1}".format(
+                    group['name'], group['id']))
+                messages = getHistory(slack.groups, group['id'])
+                return group['name'], group['id'], messages
+
+        return None
+
     result = get_private_channel(slack, channel_name)
     if result is None:
         result = get_public_channel(slack, channel_name)
@@ -120,35 +141,22 @@ def get_channel(slack, channel_name):
             print("ERROR: Invalid channel: %s" % channel_name)
     return result
 
-def get_public_channel(slack, channel_name):
-    channels = slack.channels.list().body['channels']
-    for channel in channels:
-        if channel['name'] == channel_name:
-            print("getting history for public channel {0} with id {1}".format(
-                channel['name'], channel['id']))
-            messages = getHistory(slack.channels, channel['id'])
-            return channel['name'], channel['id'], messages
-    return None
 
-def get_private_channel(slack, channel_name):
-    groups = slack.groups.list().body['groups']
-    for group in groups:
-        if group['name'] == channel_name:
-            print("getting history for private channel {0} with id {1}".format(
-                group['name'], group['id']))
-            messages = getHistory(slack.groups, group['id'])
-            return group['name'], group['id'], messages
+def sort_messages_last_to_first(messages):
+    def sort_f(m):
+        resolve_time(message['ts'])
+    return sorted(messages, key=sort_f)
 
-    return None
+
 
 def write_channel_histories_to_new(slack, userid_to_name, histories, new_channel_name):
     print("Writing %d channel histories to new channel %s" % (len(histories), new_channel_name))
     for name, id, messages in histories:
         print("Working on channel %s (id %s) with %d messages" % (name, id, len(messages)))
-        post = lambda m: resolve_message(slack, userid_to_name, name, m)
-        for i,msg in enumerate(messages):
+        resolve = lambda m: resolve_message(slack, userid_to_name, name, m)
+        for i,msg in enumerate(sort_messages_last_to_first(messages)):
             try:
-                slack.chat.post_message(new_channel_name, post(msg))
+                slack.chat.post_message(new_channel_name, resolve(msg))
                 print("...sent [%d/%d]" % (i + 1, len(messages)))
                 time.sleep(1)
             except Exception as e:
