@@ -70,6 +70,12 @@ from slacker import Slacker
 
 from slack_history import *
 
+def first(x):
+    return x[0]
+
+def second(x):
+    return x[1]
+
 def resolve_time(microseconds:str) -> str:
     pst = pytz.timezone('US/Pacific')
     epoch = datetime(1970, 1, 1, tzinfo=pst)
@@ -151,17 +157,18 @@ def write_channel_histories_to_new(slack, userid_to_name, histories, new_channel
     for name, id, messages in histories:
         print("Obtained %d messages from channel %s (id %s)" % (len(messages), name, id))
         resolve = lambda m: resolve_message(slack, userid_to_name, name, m)
-        for m in messages:
+        for i,m in enumerate(messages):
             try:
                 resolved = resolve(m)
                 all_messages.append((int(m['ts'].replace(".","")), resolved))
             except Exception as e:
-                print("ERROR: could not resolve message (%s) due to %s, skipping" % (m, e))
-    all_messages.sort(key=lambda t_microsec,_: t_microsec)
+                print("ERROR: could not resolve message [%d/%d] in channel %s due to %s; "
+                      "stringifying as dict" % (i+1, len(messages), name, e))
+    all_messages.sort(key=first)
 
     print("Writing %d channel histories of %d total messages to new channel %s" % (
-        len(histories), new_channel_name, len(all_messages)))
-    for i, resolved_message in enumerate(filter(lambda _, m: m, all_messages)):
+        len(histories), len(all_messages), new_channel_name))
+    for i, resolved_message in enumerate(filter(second, all_messages)):
         try:
             slack.chat.post_message(new_channel_name, resolved_message)
             print("...sent [%d/%d]" % (i + 1, len(all_messages)))
