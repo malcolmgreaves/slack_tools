@@ -164,6 +164,11 @@ def write_channel_histories_to_new(slack, userid_to_name, histories, new_channel
             except Exception as e:
                 print("ERROR: could not resolve message [%d/%d] in channel %s due to %s; "
                       "stringifying as dict" % (i+1, len(messages), name, e))
+                if 'ts' in m:
+                    try:
+                        all_messages.append((int(m['ts'].replace(".", "")), str(m)))
+                    except:
+                        pass
     all_messages.sort(key=first)
 
     print("Writing %d channel histories of %d total messages to new channel %s" % (
