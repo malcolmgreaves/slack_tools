@@ -147,17 +147,27 @@ def sort_messages_last_to_first(messages):
 
 
 def write_channel_histories_to_new(slack, userid_to_name, histories, new_channel_name):
-    print("Writing %d channel histories to new channel %s" % (len(histories), new_channel_name))
+    all_messages = []
     for name, id, messages in histories:
-        print("Working on channel %s (id %s) with %d messages" % (name, id, len(messages)))
+        print("Obtained %d messages from channel %s (id %s)" % (len(messages), name, id))
         resolve = lambda m: resolve_message(slack, userid_to_name, name, m)
-        for i,msg in enumerate(sort_messages_last_to_first(messages)):
+        for m in messages:
             try:
-                slack.chat.post_message(new_channel_name, resolve(msg))
-                print("...sent [%d/%d]" % (i + 1, len(messages)))
-                time.sleep(1)
+                resolved = resolve(m)
+                all_messages.append((int(m['ts'].replace(".","")), resolved))
             except Exception as e:
-                print("error, could not send message %d due to %s, skipping" % (i+1, e))
+                print("ERROR: could not resolve message (%s) due to %s, skipping" % (m, e))
+    all_messages.sort(key=lambda t_microsec,_: t_microsec)
+
+    print("Writing %d channel histories of %d total messages to new channel %s" % (
+        len(histories), new_channel_name, len(all_messages)))
+    for i, resolved_message in enumerate(filter(lambda _, m: m, all_messages)):
+        try:
+            slack.chat.post_message(new_channel_name, resolved_message)
+            print("...sent [%d/%d]" % (i + 1, len(all_messages)))
+            time.sleep(1)
+        except Exception as e:
+            print("error, could not send message %d due to %s, skipping" % (i+1, e))
 
     print("Success!")
 
